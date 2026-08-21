@@ -7,6 +7,21 @@ import pandas as pd
 import telebot
 from flask import Flask
 
+# פרטי הבוט והצ'אט
+BOT_TOKEN = "8710966476:AAEEMZiiTBNWxrBYFmo3mK_eOGDAUZWaZis"
+CHAT_ID = "8253548607"
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+# 1. שליחת הודעת בדיקה מיידית (עובד לפני הכל)
+print("מנסה לשלוח הודעת בדיקה...")
+try:
+    bot.send_message(CHAT_ID, "🚀 הבוט מחובר בהצלחה ל-Render ועובד!")
+    print("הודעת בדיקה נשלחה בהצלחה!")
+except Exception as e:
+    print(f"שגיאה בשליחת הודעה: {e}")
+
+# 2. הגדרת שרת ה-Web בשביל Render
 app = Flask(__name__)
 
 @app.route('/')
@@ -15,29 +30,9 @@ def home():
 
 def run_web_server():
     port = int(os.environ.get("PORT", 10000))
-    # use_reloader=False מונע חסימה וכפילות תהליכים ב-Render
-    app.run(host="0.0.0.0", port=port, use_reloader=False)
+    app.run(host="0.0.0.0", port=port)
 
-BOT_TOKEN = "8710966476:AAEEMZiiTBNWxrBYFmo3mK_eOGDAUZWaZis"
-CHAT_ID = "8253548607"
-
-bot = telebot.TeleBot(BOT_TOKEN)
-
-# 1. הפעלת השרת ברקע בתהליך נפרד
-server_thread = threading.Thread(target=run_web_server, daemon=True)
-server_thread.start()
-
-# השהייה קצרה לוודא שהשרת עלה
-time.sleep(2)
-
-# 2. שליחת הודעת בדיקה מיידית
-print("מנסה לשלוח הודעת בדיקה...")
-try:
-    bot.send_message(CHAT_ID, "🚀 הבוט מחובר בהצלחה ל-Render ועובד!")
-    print("הודעת בדיקה נשלחה בהצלחה!")
-except Exception as e:
-    print(f"Error sending start message: {e}")
-
+# 3. הגדרת רשימת המעקב והסריקה
 WATCHLIST = [
     "MU", "SNDK", "MRVL", "CRDO", "TSEM", "COHR", 
     "MP", "IREN", "OKLO", "VECO", "IBM", "GOOGL", 
@@ -70,6 +65,14 @@ def run_daily_scan():
 
 schedule.every().day.at("17:00").do(run_daily_scan)
 
-while True:
-    schedule.run_pending()
-    time.sleep(60)
+# הרצת תזמון הסריקות ברקע
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+threading.Thread(target=run_scheduler, daemon=True).start()
+
+# 4. הפעלת שרת ה-Web בלולאה הראשית
+if __name__ == "__main__":
+    run_web_server()
