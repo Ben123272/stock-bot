@@ -7,7 +7,6 @@ import pandas as pd
 import telebot
 from flask import Flask
 
-# יצירת שרת ווב קטן
 app = Flask(__name__)
 
 @app.route('/')
@@ -16,20 +15,26 @@ def home():
 
 def run_web_server():
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    # use_reloader=False מונע חסימה וכפילות תהליכים ב-Render
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
 
 BOT_TOKEN = "8710966476:AAEEMZiiTBNWxrBYFmo3mK_eOGDAUZWaZis"
 CHAT_ID = "8253548607"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# הפעלת השרת ברקע
-threading.Thread(target=run_web_server, daemon=True).start()
+# 1. הפעלת השרת ברקע בתהליך נפרד
+server_thread = threading.Thread(target=run_web_server, daemon=True)
+server_thread.start()
 
-# שליחת הודעת בדיקה מיידית
+# השהייה קצרה לוודא שהשרת עלה
+time.sleep(2)
+
+# 2. שליחת הודעת בדיקה מיידית
+print("מנסה לשלוח הודעת בדיקה...")
 try:
-    bot.send_message(CHAT_ID, "🚀 הבוט מחובר בהצלחה ל-Render ועובד בחינם!")
-    print("הודעת בדיקה נשלחה!")
+    bot.send_message(CHAT_ID, "🚀 הבוט מחובר בהצלחה ל-Render ועובד!")
+    print("הודעת בדיקה נשלחה בהצלחה!")
 except Exception as e:
     print(f"Error sending start message: {e}")
 
