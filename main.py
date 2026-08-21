@@ -7,9 +7,13 @@ import pandas as pd
 import telebot
 from flask import Flask
 
-# הטוקן החדש והתקין
-BOT_TOKEN = "8710966476:AAG0UXucvKBzOISHrGiRzVhsG3_lsnLFFhM"
-CHAT_ID = "8253548607"
+# קריאת הנתונים מההגדרות של Render
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+
+# הדפסה לבדיקה בלוגים של Render
+print(f"DEBUG TOKEN: {BOT_TOKEN}")
+print(f"DEBUG CHAT_ID: {CHAT_ID}")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -32,7 +36,7 @@ def run_web_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# 3. הגדרת רשימת המעקב והסריקה
+# 3. רשימת המעקב והסריקה
 WATCHLIST = [
     "MU", "SNDK", "MRVL", "CRDO", "TSEM", "COHR", 
     "MP", "IREN", "OKLO", "VECO", "IBM", "GOOGL", 
@@ -65,7 +69,6 @@ def run_daily_scan():
 
 schedule.every().day.at("17:00").do(run_daily_scan)
 
-# הרצת תזמון הסריקות ברקע
 def run_scheduler():
     while True:
         schedule.run_pending()
@@ -73,6 +76,5 @@ def run_scheduler():
 
 threading.Thread(target=run_scheduler, daemon=True).start()
 
-# 4. הפעלת שרת ה-Web
 if __name__ == "__main__":
     run_web_server()
