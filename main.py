@@ -98,7 +98,7 @@ def run_daily_scan():
 
 # תזמון הרצה יומית ב-20:00 (שעון ישראל)
 schedule.every().day.at("17:00").do(run_daily_scan)
-
+bot.send_message(CHAT_ID, "🧪 בדיקת תקינות: הבוט מחובר ועובד מעולה!")
 send_to_all("🤖 *הבוט הופעל בהצלחה ב-Render!* הסריקה היומית מתוזמנת לשעה 20:00.")
 
 while True:
