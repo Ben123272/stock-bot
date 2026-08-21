@@ -8,7 +8,7 @@ import telebot
 from flask import Flask
 
 # הטוקן החדש והתקין
-BOT_TOKEN = "8710966476:AAG0UXucvKBz0ISHrGiRzVhsG3_lsnLFFhM"
+BOT_TOKEN = "8710966476:AAG0UXucvKBzOISHrGiRzVhsG3_lsnLFFhM"
 CHAT_ID = "8253548607"
 
 bot = telebot.TeleBot(BOT_TOKEN)
