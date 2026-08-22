@@ -6,7 +6,6 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# הגדרות בסיסיות
 BOT_TOKEN = "8710966476:AAH_Sf7G2HIuy5aOPnXRbbbS-jdPnn3BZfM"
 MY_STOCKS = ["MU", "SNDK", "MRVL", "CRDO", "TSEM", "MP", "IREN", "OKLO", "VECO", "IBM", "GOOGL", "AMD", "META", "NVDA", "CEG", "PLTR", "COHR"]
 GOLD_POOL = ["GOLD", "AEM", "NEM"]
@@ -62,6 +61,20 @@ def webhook():
                 stop_loss = curr - (atr * 1.5)
                 take_profit = curr + (atr * 3)
                 
+                # בדיקת תנאים האם המניה ראויה לכניסה
+                is_good_trend = res['trend'] == "עלייה"
+                is_good_macd = res['macd'] == "חיובי"
+                
+                if is_good_trend and is_good_macd:
+                    recommendation = "✅ **המלצה: שווה כניסה (מומנטום ומגמה חיוביים)**"
+                    action_details = (
+                        f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
+                        f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$"
+                    )
+                else:
+                    recommendation = "❌ **המלצה: להתרחק / לא להיכנס כרגע (מגמה או מומנטום שליליים)**"
+                    action_details = "⚠️ המניה נמצאת במצב סיכון או במגמת ירידה, עדיף להמתין להستقرار או לחזור לפעילות כשהתנאים ישתפרו."
+
                 reply = (
                     f"🎯 **ניתוח ממוקד ל-{ticker}**\n\n"
                     f"💰 מחיר נוכחי: {res['price']}\n"
@@ -69,8 +82,8 @@ def webhook():
                     f"🚀 מומנטום: {res['macd']}\n"
                     f"📊 מצב רצועות: {res['bb']}\n"
                     f"⚖️ יחס סיכון/סיכוי (R/R): {res['rr']}\n\n"
-                    f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
-                    f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$"
+                    f"{recommendation}\n\n"
+                    f"{action_details}"
                 )
                 send_telegram_message(chat_id, reply)
             else:
