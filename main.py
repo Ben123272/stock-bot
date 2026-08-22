@@ -17,18 +17,22 @@ def send_telegram_message(chat_id, text):
 def analyze_stock(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # שימוש בתקופה תקינה ש-yfinance מכיר
         hist = stock.history(period="3mo")
         if hist.empty: return None
         price = hist['Close'].iloc[-1]
         sma = hist['Close'].rolling(window=20).mean().iloc[-1]
         trend = "עלייה" if price > sma else "ירידה"
         
-        # מומנטום לפי ממוצע 12
         momentum_val = hist['Close'].rolling(window=12).mean().iloc[-1]
         macd = "חיובי" if price > momentum_val else "שלילי"
         
-        action = "להישאר 🟢" if (trend == "עלייה" and macd == "חיובי") else "לצאת 🔴"
+        if trend == "עלייה" and macd == "חיובי":
+            action = "להישאר 🟢"
+        elif trend == "ירידה" and macd == "שלילי":
+            action = "לצאת 🔴"
+        else:
+            action = "להמתין ⏳"
+            
         return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'action': action}
     except:
         return None
@@ -71,33 +75,41 @@ def webhook():
                 curr = hist['Close'].iloc[-1]
                 atr = (hist['High'] - hist['Low']).rolling(window=14).mean().iloc[-1]
                 
-                stop_loss = curr - (atr * 1.5)
-                risk = curr - stop_loss
-                take_profit = curr + (risk * 3)  # יחס 1:3 מדויק
-                actual_rr = 3.0
-                
-                if res['trend'] == "עלייה" and res['macd'] == "חיובי":
-                    recommendation = "✅ **המלצה: להיכנס (שווה כניסה)**\n🚀 המגמה והמומנטום חיוביים ותומכים במהלך."
-                elif res['trend'] == "עלייה" and res['macd'] == "שלילי":
-                    recommendation = "⏳ **המלצה: להמתין קצת**\n⚠️ המגמה הראשית עולה, אבל המומנטום כרגע בתיקון/חולשה קצרה. עדיף לחכות שיתייצב."
-                elif res['trend'] == "ירידה" and res['macd'] == "חיובי":
-                    recommendation = "⏳ **המלצה: להמתין קצת**\n🔄 יש סימני מומנטום ראשוניים, אבל המגמה עדיין יורדת. כדאי להמתין לפריצת ממוצע."
+                # הצגת סטופ-לוס וטייק-פרופיט אך ורק אם ההמלצה היא להיכנס / להישאר
+                if res['action'] == "להישאר 🟢":
+                    stop_loss = curr - (atr * 1.5)
+                    risk = curr - stop_loss
+                    take_profit = curr + (risk * 3)
+                    recommendation = (
+                        "✅ **המלצה: להיכנס / להישאר**\n"
+                        "🚀 המגמה והמומנטום חיוביים ותומכים במהלך.\n\n"
+                        f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
+                        f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$ (יחס 1:3)"
+                    )
+                elif res['action'] == "להמתין ⏳":
+                    recommendation = (
+                        "⏳ **המלצה: להמתין בסבלנות**\n"
+                        "⚠️ יש מעורבות באיתותים (תיקון קטן). המניה לא שבורה, עדיף להמתין לאישור ברור.\n"
+                        "🚫 *אין חישוב סטופ-לוס או יעד מאחר ואין אישור לכניסה מיידית.*"
+                    )
                 else:
-                    recommendation = "❌ **המלצה: לא להיכנס בכלל**\n🛑 גם המגמה וגם המומנטום שליליים. סיכון גבוה מדי."
+                    recommendation = (
+                        "❌ **המלצה: לצאת / להתרחק**\n"
+                        "🛑 גם המגמה וגם המומנטום שליליים לחלוטין.\n"
+                        "🚫 *אין חישוב סטופ-לוס או יעד מאחר ואין אישור לכניסה או החזקה.*"
+                    )
 
                 reply = (
                     f"🎯 **ניתוח מעמיק ל-{ticker}**\n\n"
                     f"💰 מחיר נוכחי: {res['price']}\n"
                     f"📈 מגמה (SMA20): {res['trend']}\n"
                     f"🚀 מומנטום: {res['macd']}\n"
-                    f"⚖️ יחס סיכון/סיכוי (R/R): 1:{actual_rr:.1f}\n\n"
-                    f"{recommendation}\n\n"
-                    f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
-                    f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$"
+                    f"💡 סטטוס: **{res['action']}**\n\n"
+                    f"{recommendation}"
                 )
                 send_telegram_message(chat_id, reply)
             else:
-                send_telegram_message(chat_id, f"❌ לא הצלחתי למצוא נתונים עבור {ticker}. בדוק את הסימול.")
+                send_telegram_message(chat_id, f"❌ לא הצלחתי למצוא נתונים עבור {ticker}.")
                 
     return "OK"
 
