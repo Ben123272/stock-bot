@@ -61,8 +61,7 @@ def generate_full_report():
     report += "🌟 **הזדמנויות הזהב:**\n" + "\n".join([f"• {g['ticker']} ({g['price']}) | R/R: {g['rr']}" for g in gold_results]) + "\n\n"
     report += "📊 **16 המניות שלך:**\n" + "\n".join([f"📌 {d['ticker']} ({d['price']}) | {d['trend']} | {d['bb']}" for d in my_results])
     return report
-
-@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def webhook():
     update = request.get_json()
     if "message" in update:
