@@ -57,11 +57,13 @@ def webhook():
                 hist = stock.history(period="60d")
                 curr = hist['Close'].iloc[-1]
                 atr = (hist['High'] - hist['Low']).rolling(window=14).mean().iloc[-1]
-                stop_loss = curr - (atr * 1.5)
-                take_profit = curr + (atr * 3)
                 
-                # חישוב יחס סיכון/סיכוי אמיתי
+                # חישוב נכון: סטופ לוס ב-1.5 ATR, טייק פרופיט בפי 3 מהסיכון (כלומר 4.5 ATR)
+                stop_loss = curr - (atr * 1.5)
                 risk = curr - stop_loss
+                take_profit = curr + (risk * 3)  # יעד שהוא פי 3 מהסיכון
+                
+                # חישוב דינמי של היחס האמיתי
                 reward = take_profit - curr
                 actual_rr = reward / risk if risk > 0 else 0
                 
@@ -84,7 +86,7 @@ def webhook():
                     f"💰 מחיר נוכחי: {res['price']}\n"
                     f"📈 מגמה: {res['trend']}\n"
                     f"🚀 מומנטום: {res['macd']}\n"
-                    f"⚖️ יחס סיכון/סיכוי (R/R) מחושב: 1:{actual_rr:.1f}\n\n"
+                    f"⚖️ יחס סיכון/סיכוי (R/R): 1:{actual_rr:.1f}\n\n"
                     f"{recommendation}\n\n"
                     f"{action_details}"
                 )
