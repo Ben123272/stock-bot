@@ -6,7 +6,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-BOT_TOKEN = "8710966476:AAH_Sf7G2HIuy5aOPnXRbbbS-jdPnn3BZfM"
+BOT_TOKEN = "8710966476:AAH_Sf7G2HIuy5a0PnXRbbbS-jdPnn3BZfM"
 MY_STOCKS = ["MU", "SNDK", "MRVL", "CRDO", "TSEM", "MP", "IREN", "OKLO", "VECO", "IBM", "GOOGL", "AMD", "META", "NVDA", "CEG", "PLTR", "COHR"]
 GOLD_POOL = ["GOLD", "AEM", "NEM"]
 
@@ -25,7 +25,11 @@ def analyze_stock(ticker):
         trend = "עלייה" if price > sma else "ירידה"
         macd = "חיובי" if price > (hist['Close'].rolling(window=12).mean().iloc[-1]) else "שלילי"
         bb = "בתוך הרצועות"
-        return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'bb': bb}
+        
+        # החלטה אוטומטית: להישאר או לצאת
+        action = "להישאר 🟢" if (trend == "עלייה" and macd == "חיובי") else "לצאת 🔴"
+        
+        return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'bb': bb, 'action': action}
     except:
         return None
 
@@ -33,7 +37,7 @@ def generate_full_report():
     today = datetime.now().strftime('%Y-%m-%d')
     my_results = [analyze_stock(t) for t in MY_STOCKS if analyze_stock(t)]
     report = f"🏛️ דוח אלגוריתמי מוסדי - {today}\n\n"
-    report += "📈 **המניות שלך:**\n" + "\n".join([f"• {d['ticker']} | {d['price']} | {d['trend']}" for d in my_results])
+    report += "📈 **המניות שלך (סטטוס ניהול פוזיציה):**\n" + "\n".join([f"• {d['ticker']} | {d['price']} | **{d['action']}**" for d in my_results])
     return report
 
 @app.route('/webhook', methods=['POST'])
@@ -58,34 +62,27 @@ def webhook():
                 curr = hist['Close'].iloc[-1]
                 atr = (hist['High'] - hist['Low']).rolling(window=14).mean().iloc[-1]
                 
-                # חישוב נכון: סטופ לוס ב-1.5 ATR, טייק פרופיט בפי 3 מהסיכון (כלומר 4.5 ATR)
                 stop_loss = curr - (atr * 1.5)
                 risk = curr - stop_loss
-                take_profit = curr + (risk * 3)  # יעד שהוא פי 3 מהסיכון
+                take_profit = curr + (risk * 3)  # יעד פי 3 מהסיכון
+                actual_rr = 3.0
                 
-                # חישוב דינמי של היחס האמיתי
-                reward = take_profit - curr
-                actual_rr = reward / risk if risk > 0 else 0
-                
-                # בדיקת תנאים האם המניה ראויה לכניסה
-                is_good_trend = res['trend'] == "עלייה"
-                is_good_macd = res['macd'] == "חיובי"
-                
-                if is_good_trend and is_good_macd:
-                    recommendation = "✅ **המלצה: שווה כניסה**"
+                if res['action'] == "להישאר 🟢":
+                    recommendation = "✅ **המלצה: להישאר / שווה כניסה**"
                     action_details = (
                         f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
                         f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$"
                     )
                 else:
-                    recommendation = "❌ **המלצה: להתרחק כרגע**"
-                    action_details = "⚠️ התנאים הטכניים (מגמה או מומנטום) לא תומכים בכניסה כרגע."
+                    recommendation = "❌ **המלצה: לצאת / להתרחק כרגע**"
+                    action_details = "⚠️ המגמה או המומנטום שליליים – לא להחזיק או לא להיכנס."
 
                 reply = (
                     f"🎯 **ניתוח ממוקד ל-{ticker}**\n\n"
                     f"💰 מחיר נוכחי: {res['price']}\n"
                     f"📈 מגמה: {res['trend']}\n"
                     f"🚀 מומנטום: {res['macd']}\n"
+                    f"💡 פעולה נדרשת: **{res['action']}**\n"
                     f"⚖️ יחס סיכון/סיכוי (R/R): 1:{actual_rr:.1f}\n\n"
                     f"{recommendation}\n\n"
                     f"{action_details}"
