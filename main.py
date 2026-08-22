@@ -8,13 +8,12 @@ from datetime import datetime
 app = Flask(__name__)
 
 BOT_TOKEN = "8710966476:AAH_Sf7G2HIuy5a0PnXRbbbS-jdPnn3BZfM"
-CHAT_ID = "8253548607"
 MY_STOCKS = ["MU", "SNDK", "MRVL", "CRDO", "TSEM", "MP", "IREN", "OKLO", "VECO", "IBM", "GOOGL", "AMD", "META", "NVDA", "CEG", "PLTR"]
 GOLD_POOL = ["QQQ", "SOXX", "XLE", "GS", "JPM", "NFLX", "COST", "V", "AAPL", "AMZN"]
 
-def send_telegram_message(message):
+def send_telegram_message(chat_id, message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
     try:
         requests.post(url, json=payload)
     except: pass
@@ -67,23 +66,16 @@ def generate_full_report():
 def webhook():
     update = request.get_json()
     if "message" in update:
+        chat_id = update["message"]["chat"]["id"]
         msg = update["message"].get("text", "").strip()
         if msg == "סקירה":
-            send_telegram_message("⏳ מכין דוח מניות מלא...")
-            send_telegram_message(generate_full_report())
+            send_telegram_message(chat_id, "⏳ מכין דוח מניות מלא...")
+            send_telegram_message(chat_id, generate_full_report())
     return "OK"
-
-def scheduled_job():
-    while True:
-        if datetime.utcnow().hour == 17 and datetime.utcnow().minute == 0:
-            send_telegram_message(generate_full_report())
-            time.sleep(65)
-        time.sleep(30)
 
 @app.route('/')
 def home():
     return "Bot Webhook is active!"
 
 if __name__ == "__main__":
-    Thread(target=scheduled_job).start()
     app.run(host='0.0.0.0', port=10000)
