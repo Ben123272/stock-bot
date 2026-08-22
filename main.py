@@ -25,8 +25,7 @@ def analyze_stock(ticker):
         trend = "עלייה" if price > sma else "ירידה"
         macd = "חיובי" if price > (hist['Close'].rolling(window=12).mean().iloc[-1]) else "שלילי"
         bb = "בתוך הרצועות"
-        rr = "1:3"
-        return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'bb': bb, 'rr': rr}
+        return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'bb': bb}
     except:
         return None
 
@@ -61,27 +60,31 @@ def webhook():
                 stop_loss = curr - (atr * 1.5)
                 take_profit = curr + (atr * 3)
                 
+                # חישוב יחס סיכון/סיכוי אמיתי
+                risk = curr - stop_loss
+                reward = take_profit - curr
+                actual_rr = reward / risk if risk > 0 else 0
+                
                 # בדיקת תנאים האם המניה ראויה לכניסה
                 is_good_trend = res['trend'] == "עלייה"
                 is_good_macd = res['macd'] == "חיובי"
                 
                 if is_good_trend and is_good_macd:
-                    recommendation = "✅ **המלצה: שווה כניסה (מומנטום ומגמה חיוביים)**"
+                    recommendation = "✅ **המלצה: שווה כניסה**"
                     action_details = (
                         f"🛑 סטופ לוס מוצע: {stop_loss:.2f}$\n"
                         f"🎯 טייק פרופיט מוצע: {take_profit:.2f}$"
                     )
                 else:
-                    recommendation = "❌ **המלצה: להתרחק / לא להיכנס כרגע (מגמה או מומנטום שליליים)**"
-                    action_details = "⚠️ המניה נמצאת במצב סיכון או במגמת ירידה, עדיף להמתין להستقرار או לחזור לפעילות כשהתנאים ישתפרו."
+                    recommendation = "❌ **המלצה: להתרחק כרגע**"
+                    action_details = "⚠️ התנאים הטכניים (מגמה או מומנטום) לא תומכים בכניסה כרגע."
 
                 reply = (
                     f"🎯 **ניתוח ממוקד ל-{ticker}**\n\n"
                     f"💰 מחיר נוכחי: {res['price']}\n"
                     f"📈 מגמה: {res['trend']}\n"
                     f"🚀 מומנטום: {res['macd']}\n"
-                    f"📊 מצב רצועות: {res['bb']}\n"
-                    f"⚖️ יחס סיכון/סיכוי (R/R): {res['rr']}\n\n"
+                    f"⚖️ יחס סיכון/סיכוי (R/R) מחושב: 1:{actual_rr:.1f}\n\n"
                     f"{recommendation}\n\n"
                     f"{action_details}"
                 )
