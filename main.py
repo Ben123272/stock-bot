@@ -17,17 +17,17 @@ def send_telegram_message(chat_id, text):
 def analyze_stock(ticker):
     try:
         stock = yf.Ticker(ticker)
-        hist = stock.history(period="1.5mo")
+        # שימוש בתקופה תקינה ש-yfinance מכיר
+        hist = stock.history(period="3mo")
         if hist.empty: return None
         price = hist['Close'].iloc[-1]
         sma = hist['Close'].rolling(window=20).mean().iloc[-1]
         trend = "עלייה" if price > sma else "ירידה"
         
-        # מומנטום פשוט לפי ממוצע 12
+        # מומנטום לפי ממוצע 12
         momentum_val = hist['Close'].rolling(window=12).mean().iloc[-1]
         macd = "חיובי" if price > momentum_val else "שלילי"
         
-        # סטטוס לתיק הקיים
         action = "להישאר 🟢" if (trend == "עלייה" and macd == "חיובי") else "לצאת 🔴"
         return {'ticker': ticker, 'price': f"{price:.2f}$", 'trend': trend, 'macd': macd, 'action': action}
     except:
@@ -41,7 +41,6 @@ def webhook():
         chat_id = update["message"]["chat"]["id"]
         msg = update["message"].get("text", "").strip()
         
-        # פקודת החלפה
         if msg.startswith("החלף "):
             try:
                 parts = msg.split(" ")
@@ -68,7 +67,7 @@ def webhook():
             res = analyze_stock(ticker)
             if res:
                 stock = yf.Ticker(ticker)
-                hist = stock.history(period="60d")
+                hist = stock.history(period="3mo")
                 curr = hist['Close'].iloc[-1]
                 atr = (hist['High'] - hist['Low']).rolling(window=14).mean().iloc[-1]
                 
@@ -77,7 +76,6 @@ def webhook():
                 take_profit = curr + (risk * 3)  # יחס 1:3 מדויק
                 actual_rr = 3.0
                 
-                # 3 רמות החלטה למניה חדשה
                 if res['trend'] == "עלייה" and res['macd'] == "חיובי":
                     recommendation = "✅ **המלצה: להיכנס (שווה כניסה)**\n🚀 המגמה והמומנטום חיוביים ותומכים במהלך."
                 elif res['trend'] == "עלייה" and res['macd'] == "שלילי":
@@ -99,7 +97,7 @@ def webhook():
                 )
                 send_telegram_message(chat_id, reply)
             else:
-                send_telegram_message(chat_id, f"❌ לא הצלחתי למצוא נתונים עבור {ticker}.")
+                send_telegram_message(chat_id, f"❌ לא הצלחתי למצוא נתונים עבור {ticker}. בדוק את הסימול.")
                 
     return "OK"
 
