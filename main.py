@@ -62,15 +62,6 @@ def generate_full_report():
     report += "📊 **16 המניות שלך:**\n" + "\n".join([f"📌 {d['ticker']} ({d['price']}) | {d['trend']} | {d['bb']}" for d in my_results])
     return report
 @app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()
-    if "message" in update:
-        chat_id = update["message"]["chat"]["id"]
-        msg = update["message"].get("text", "").strip()
-        if msg == "סקירה":
-            send_telegram_message(chat_id, "⏳ מכין דוח מניות מלא...")
-            send_telegram_message(chat_id, generate_full_report())
-    return "OK"
 
 @app.route('/')
 def home():
